@@ -43,12 +43,14 @@ class Win : public QWidget
 {
     Q_OBJECT
 
-  protected:
-    QTextCodec *codec;            // кодек для русификации
-    QLabel *label1, *label2;      // подписи «Счёт по 1» и «Счёт по 5»
-    Counter *edit1, *edit2;       // два счётчика
-    QPushButton *calcbutton;      // кнопка «+1»
-    QPushButton *exitbutton;      // кнопка «Выход»
+    // Поля закрыты (инкапсуляция): класс не наследуется. Все виджеты создаются
+    // с родителем this и освобождаются механизмом parent-child Qt (без утечек).
+  private:
+    QTextCodec *codec;        // кодек для русификации
+    QLabel *label1, *label2;  // подписи «Счёт по 1» и «Счёт по 5»
+    Counter *edit1, *edit2;   // два счётчика
+    QPushButton *calcbutton;  // кнопка «+1»
+    QPushButton *exitbutton;  // кнопка «Выход»
 
   public:
     explicit Win(QWidget *parent = nullptr);
