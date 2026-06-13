@@ -1,0 +1,18 @@
+# Сборка
+build/
+build-*/
+*.o
+*.obj
+
+# Артефакты Qt / moc / qmake
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+*.user
+Makefile
+CMakeCache.txt
+CMakeFiles/
+
+# Методичка (большой PDF в репозиторий не кладём)
+Создание интерфейсов с использованием Qt.pdf
