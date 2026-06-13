@@ -1,0 +1,50 @@
+#ifndef FIGURA_H
+#define FIGURA_H
+
+// QPainter и базовые типы рисовани€; в Qt5 Ч через модуль QtWidgets
+// (в методичке дл€ Qt4 был <QtGui>).
+#include <QtWidgets>
+
+// јбстрактный базовый класс фигуры (см. диаграмму классов, рис. 2.14).
+// ƒемонстрирует Ђсложный полиморфизмї: невиртуальный move() базового класса
+// вызывает виртуальный draw(), переопределЄнный в наследниках.
+class Figura
+{
+  protected:
+    int x, y;    // координаты геометрического центра фигуры
+    int halflen; // половина характерного размера (длины линии / стороны квадрата)
+    int dx, dy;  // текущее смещение, пересчитываемое при повороте
+    int r;       // зарезервировано (как в методичке), не используетс€
+
+    // „исто виртуальный метод рисовани€ Ч реализуетс€ в наследниках.
+    virtual void draw(QPainter *Painter) = 0;
+
+  public:
+    Figura(int X, int Y, int Halflen) : x(X), y(Y), halflen(Halflen) {}
+    virtual ~Figura() {} // виртуальный деструктор Ч дл€ корректного удалени€ по базовому указателю
+
+    // ѕересчитывает смещение под угол Alpha и перерисовывает фигуру.
+    void move(float Alpha, QPainter *Painter);
+};
+
+// Ћини€, вращающа€с€ вокруг своего геометрического центра.
+class MyLine : public Figura
+{
+  protected:
+    void draw(QPainter *Painter) override;
+
+  public:
+    MyLine(int x, int y, int halflen) : Figura(x, y, halflen) {}
+};
+
+//  вадрат, вращающийс€ вокруг своего геометрического центра.
+class MyRect : public Figura
+{
+  protected:
+    void draw(QPainter *Painter) override;
+
+  public:
+    MyRect(int x, int y, int halflen) : Figura(x, y, halflen) {}
+};
+
+#endif // FIGURA_H
