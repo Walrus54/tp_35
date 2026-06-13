@@ -1,11 +1,12 @@
 #include "area.h"
 
-// Конструктор: фиксируем размер холста, создаём фигуры, обнуляем угол поворота.
+// Конструктор: фиксируем размер холста, создаём фигуры (через make_unique — RAII),
+// обнуляем угол поворота.
 Area::Area(QWidget *parent) : QWidget(parent)
 {
     setFixedSize(QSize(300, 200));
-    myline = new MyLine(80, 100, 50);  // линия в левой части холста
-    myrect = new MyRect(220, 100, 50); // квадрат в правой части холста
+    myline = std::make_unique<MyLine>(80, 100, 50);  // линия в левой части холста
+    myrect = std::make_unique<MyRect>(220, 100, 50); // квадрат в правой части холста
     alpha = 0;
 }
 
@@ -41,11 +42,4 @@ void Area::timerEvent(QTimerEvent *event)
 void Area::hideEvent(QHideEvent *)
 {
     killTimer(myTimer);
-}
-
-// Деструктор: освобождаем динамически созданные фигуры.
-Area::~Area()
-{
-    delete myline;
-    delete myrect;
 }
