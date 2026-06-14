@@ -1,0 +1,45 @@
+#include "area.h"
+
+//  онструктор: фиксируем размер холста, создаЄм фигуры (через make_unique Ч RAII),
+// обнул€ем угол поворота.
+Area::Area(QWidget *parent) : QWidget(parent)
+{
+    setFixedSize(QSize(300, 200));
+    myline = std::make_unique<MyLine>(80, 100, 50);  // лини€ в левой части холста
+    myrect = std::make_unique<MyRect>(220, 100, 50); // квадрат в правой части холста
+    alpha = 0;
+}
+
+// —обытие показа окна: запускаем таймер с интервалом 50 мс и запоминаем его id.
+void Area::showEvent(QShowEvent *)
+{
+    myTimer = startTimer(50);
+}
+
+// —обытие перерисовки: создаЄм QPainter и просим каждую фигуру нарисовать себ€
+// под текущим углом (квадрат вращаетс€ в обратную сторону и вдвое медленнее).
+void Area::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setPen(Qt::red);
+    myline->move(alpha, &painter);
+    myrect->move(alpha * (-0.5), &painter);
+}
+
+// —обытие таймера: если сработал наш таймер Ч увеличиваем угол и планируем перерисовку.
+void Area::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == myTimer) // если это наш таймер
+    {
+        alpha = alpha + 0.2;
+        update(); // запланировать перерисовку (вызовет paintEvent)
+    }
+    else
+        QWidget::timerEvent(event); // иначе Ч стандартна€ обработка
+}
+
+// —обытие скрыти€ окна: останавливаем таймер.
+void Area::hideEvent(QHideEvent *)
+{
+    killTimer(myTimer);
+}
