@@ -5,6 +5,8 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     Win win(nullptr);
+    if (!win.isReady()) // отложенная инициализация не удалась (сообщение уже показано)
+        return 1;
     win.show();
     return app.exec();
 }

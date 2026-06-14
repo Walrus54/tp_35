@@ -34,91 +34,147 @@ QValidator::State StrValidator::validate(QString &str, int &pos) const
     return Acceptable;
 }
 
-// Конструктор: настраивает виджеты-члены, компонует окно (см. рис. 2.7),
-// настраивает интерфейс на ввод и связывает сигналы со слотами.
-// Все виджеты — члены-значения, поэтому создаются (и освобождаются) автоматически,
-// здесь их остаётся только сконфигурировать. Родителем виджетам выступает this.
-Win::Win(QWidget *parent)
-    : QWidget(parent),
-      codec(nullptr),
-      frame(this),
-      inputLabel(this),
-      inputEdit(this),
-      outputLabel(this),
-      outputEdit(this),
-      nextButton(this),
-      exitButton(this)
+// Конструктор: только берёт кодек и запускает отложенную инициализацию.
+// Построение интерфейса вынесено в init() (ленивая инициализация): это позволяет
+// проверить каждый шаг и при ошибке корректно сообщить пользователю, а не упасть.
+Win::Win(QWidget *parent) : QWidget(parent)
 {
-    // Кодек для перевода строковых констант (в кодировке Windows-1251) в Unicode.
-    // codecForName возвращает сырой указатель, который может быть nullptr, если
-    // кодек не зарегистрирован в системе. Без проверки первый же codec->toUnicode()
-    // разыменует ноль и приложение упадёт без объяснений.
-    codec = QTextCodec::codecForName("Windows-1251");
-    Q_ASSERT_X(codec != nullptr, "Win::Win", "кодек Windows-1251 недоступен в системе");
+    codec = QTextCodec::codecForName("UTF-8");
+    QString errorMessage;
+    initOk_ = init(&errorMessage);
+    if (!initOk_)
+        QMessageBox::critical(nullptr, QStringLiteral("Error"), errorMessage);
+}
+
+bool Win::isReady() const
+{
+    return initOk_;
+}
+
+// Отложенная инициализация: создаёт и компонует виджеты, связывает сигналы.
+// На каждом шаге проверяет результат и при сбое заполняет errorMessage.
+bool Win::init(QString *errorMessage)
+{
+    initOk_ = false;
     if (codec == nullptr)
     {
-        qWarning("Win::Win: кодек Windows-1251 недоступен, использую UTF-8");
-        codec = QTextCodec::codecForName("UTF-8"); // запасной кодек — есть всегда
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: кодек UTF-8 недоступен.");
+        return false;
     }
     setWindowTitle(codec->toUnicode("Возведение в квадрат"));
 
-    // --- настройка виджетов ---
-    frame.setFrameShadow(QFrame::Raised); // приподнятая рамка
-    frame.setFrameShape(QFrame::Panel);
+    // --- создание виджетов ---
+    frame = new QFrame(this);
+    if (!frame)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать рамку.");
+        return false;
+    }
+    frame->setFrameShadow(QFrame::Raised); // приподнятая рамка
+    frame->setFrameShape(QFrame::Panel);
 
-    inputLabel.setText(codec->toUnicode("Введите число:"));
+    inputLabel = new QLabel(codec->toUnicode("Введите число:"), this);
+    if (!inputLabel)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать метку ввода.");
+        return false;
+    }
+
+    inputEdit = new QLineEdit("", this);
+    if (!inputEdit)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать поле ввода.");
+        return false;
+    }
 
     // Назначаем редактору валидатор — без него не генерируется returnPressed().
-    // validator — тоже член-значение, setValidator его владения не забирает.
-    inputEdit.setValidator(&validator);
+    StrValidator *validator = new StrValidator(inputEdit);
+    if (!validator)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать валидатор.");
+        return false;
+    }
+    inputEdit->setValidator(validator);
 
-    outputLabel.setText(codec->toUnicode("Результат:"));
+    outputLabel = new QLabel(codec->toUnicode("Результат:"), this);
+    if (!outputLabel)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать метку вывода.");
+        return false;
+    }
 
-    nextButton.setText(codec->toUnicode("Следующее"));
-    exitButton.setText(codec->toUnicode("Выход"));
+    outputEdit = new QLineEdit("", this);
+    if (!outputEdit)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать поле вывода.");
+        return false;
+    }
+
+    nextButton = new QPushButton(codec->toUnicode("Следующее"), this);
+    if (!nextButton)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать кнопку «Следующее».");
+        return false;
+    }
+
+    exitButton = new QPushButton(codec->toUnicode("Выход"), this);
+    if (!exitButton)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Win: не удалось создать кнопку «Выход».");
+        return false;
+    }
 
     // --- компоновка согласно рис. 2.7 ---
-    // Layout'ы создаются через new намеренно: setLayout/addLayout по дизайну Qt
-    // забирают владение и сами удаляют их вместе с окном — это не утечка.
-    // Левая колонка (внутри рамки): метки и поля ввода/вывода.
-    QVBoxLayout *vLayout1 = new QVBoxLayout(&frame);
-    vLayout1->addWidget(&inputLabel);
-    vLayout1->addWidget(&inputEdit);
-    vLayout1->addWidget(&outputLabel);
-    vLayout1->addWidget(&outputEdit);
+    // Layout'ы создаются через new и передаются во владение Qt (виджету или
+    // родительскому layout), который сам их удаляет вместе с окном.
+    QVBoxLayout *vLayout1 = new QVBoxLayout(frame);
+    vLayout1->addWidget(inputLabel);
+    vLayout1->addWidget(inputEdit);
+    vLayout1->addWidget(outputLabel);
+    vLayout1->addWidget(outputEdit);
     vLayout1->addStretch(); // распорка прижимает виджеты вверх
 
-    // Правая колонка: кнопки.
     QVBoxLayout *vLayout2 = new QVBoxLayout();
-    vLayout2->addWidget(&nextButton);
-    vLayout2->addWidget(&exitButton);
+    vLayout2->addWidget(nextButton);
+    vLayout2->addWidget(exitButton);
     vLayout2->addStretch();
 
-    // Горизонтальная компоновка верхнего уровня: рамка + колонка кнопок.
     QHBoxLayout *hLayout = new QHBoxLayout(this);
-    hLayout->addWidget(&frame);
+    hLayout->addWidget(frame);
     hLayout->addLayout(vLayout2);
 
     begin(); // начальное состояние — режим ввода
 
     // --- связи «сигнал-слот» ---
-    connect(&exitButton, &QPushButton::clicked, this, &Win::close);  // «Выход» -> закрыть окно
-    connect(&nextButton, &QPushButton::clicked, this, &Win::begin);  // «Следующее» -> новый ввод
-    connect(&inputEdit, &QLineEdit::returnPressed, this, &Win::calc);  // Enter в поле -> вычислить
+    connect(exitButton, &QPushButton::clicked, this, &Win::close);  // «Выход» -> закрыть окно
+    connect(nextButton, &QPushButton::clicked, this, &Win::begin);  // «Следующее» -> новый ввод
+    connect(inputEdit, &QLineEdit::returnPressed, this, &Win::calc);  // Enter в поле -> вычислить
+
+    initOk_ = true;
+    return true;
 }
 
 // Настройка интерфейса на ввод: очищаем поле, прячем вывод,
 // делаем кнопку «Следующее» неактивной, передаём фокус полю ввода.
 void Win::begin()
 {
-    inputEdit.clear();
-    nextButton.setEnabled(false);
-    nextButton.setDefault(false);
-    inputEdit.setEnabled(true);
-    outputLabel.setVisible(false);
-    outputEdit.setVisible(false);
-    outputEdit.setEnabled(false);
-    inputEdit.setFocus();
+    inputEdit->clear();
+    nextButton->setEnabled(false);
+    nextButton->setDefault(false);
+    inputEdit->setEnabled(true);
+    outputLabel->setVisible(false);
+    outputEdit->setVisible(false);
+    outputEdit->setEnabled(false);
+    inputEdit->setFocus();
 }
 
 // Вычисление квадрата введённого числа и переключение интерфейса на вывод.
@@ -126,15 +182,15 @@ void Win::begin()
 // генерируется только при состоянии Acceptable), поэтому проверка не нужна.
 void Win::calc()
 {
-    float a = inputEdit.text().toFloat(); // ввод заведомо корректен
+    float a = inputEdit->text().toFloat(); // ввод заведомо корректен
     QString str;
     str.setNum(a * a); // возведение в квадрат, число -> строка
-    outputEdit.setText(str);
+    outputEdit->setText(str);
     // блокируем ввод и показываем результат
-    inputEdit.setEnabled(false);
-    outputLabel.setVisible(true);
-    outputEdit.setVisible(true);
-    nextButton.setDefault(true);
-    nextButton.setEnabled(true);
-    nextButton.setFocus();
+    inputEdit->setEnabled(false);
+    outputLabel->setVisible(true);
+    outputEdit->setVisible(true);
+    nextButton->setDefault(true);
+    nextButton->setEnabled(true);
+    nextButton->setFocus();
 }

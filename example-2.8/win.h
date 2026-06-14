@@ -31,19 +31,28 @@ class Win : public QWidget
 {
     Q_OBJECT
 
+  public:
+    explicit Win(QWidget *parent = nullptr); // конструктор: запускает отложенную инициализацию
+
+    // Проверка успешности отложенной инициализации (см. init()).
+    bool isReady() const;
+
     // Поля закрыты (инкапсуляция): доступ к виджетам нужен только методам окна.
-  private:
+  protected:
     // codec — НЕвладеющий указатель (codecForName отдаёт разделяемый объект Qt).
     QTextCodec *codec;
-    // Виджеты — члены-значения (композиция): освобождаются автоматически вместе
-    // с окном, без единого «new» и без риска утечки.
-    QLabel label1, label2;          // подписи «Счёт по 1» и «Счёт по 5»
-    Counter edit1, edit2;           // два счётчика
-    QPushButton calcbutton;         // кнопка «+1»
-    QPushButton exitbutton;         // кнопка «Выход»
+    // Виджеты — дочерние объекты this (parent-child), Qt удаляет их автоматически.
+    QLabel *label1, *label2;  // подписи «Счёт по 1» и «Счёт по 5»
+    Counter *edit1, *edit2;   // два счётчика
+    QPushButton *calcbutton;  // кнопка «+1»
+    QPushButton *exitbutton;  // кнопка «Выход»
 
-  public:
-    explicit Win(QWidget *parent = nullptr);
+  private:
+    bool initOk_; // результат отложенной инициализации
+
+    // Ленивая (двухфазная) инициализация интерфейса: вынесена из конструктора,
+    // чтобы проверить каждый шаг и при сбое сообщить пользователю, а не упасть.
+    bool init(QString *errorMessage);
 };
 
 #endif // WIN_H

@@ -1,30 +1,56 @@
 #include "window.h"
 
-// Конструктор окна: холст и кнопка — члены-значения (уже созданы), здесь их
-// остаётся настроить, скомпоновать по вертикали и связать со слотом закрытия.
+// Конструктор: только берёт кодек и запускает отложенную инициализацию.
+// Построение интерфейса вынесено в init() (ленивая инициализация).
 Window::Window()
-    : codec(nullptr),
-      area(this),
-      btn(this)
 {
-    // codecForName возвращает сырой указатель, возможно nullptr (кодек не
-    // зарегистрирован) — тогда первый же codec->toUnicode() уронит приложение.
-    codec = QTextCodec::codecForName("Windows-1251");
-    Q_ASSERT_X(codec != nullptr, "Window::Window", "кодек Windows-1251 недоступен в системе");
+    codec = QTextCodec::codecForName("UTF-8");
+    QString errorMessage;
+    initOk_ = init(&errorMessage);
+    if (!initOk_)
+        QMessageBox::critical(nullptr, QStringLiteral("Error"), errorMessage);
+}
+
+bool Window::isReady() const
+{
+    return initOk_;
+}
+
+// Отложенная инициализация: создаёт холст и кнопку с проверкой каждого
+// выделения, компонует их по вертикали и связывает кнопку со слотом закрытия.
+bool Window::init(QString *errorMessage)
+{
+    initOk_ = false;
     if (codec == nullptr)
     {
-        qWarning("Window::Window: кодек Windows-1251 недоступен, использую UTF-8");
-        codec = QTextCodec::codecForName("UTF-8"); // запасной кодек — есть всегда
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Window: кодек UTF-8 недоступен.");
+        return false;
     }
     this->setWindowTitle(codec->toUnicode("Обработка событий"));
 
-    btn.setText(codec->toUnicode("Завершить"));
+    area = new Area(this);
+    if (!area)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Window: не удалось создать холст.");
+        return false;
+    }
+    btn = new QPushButton(codec->toUnicode("Завершить"), this);
+    if (!btn)
+    {
+        if (errorMessage)
+            *errorMessage = QStringLiteral("Window: не удалось создать кнопку.");
+        return false;
+    }
 
-    // Layout создаётся через new намеренно: Qt забирает владение и удалит его
-    // вместе с окном — это не утечка.
+    // Layout передаётся во владение this (конструктор с parent), Qt удалит его сам.
     QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addWidget(&area);
-    layout->addWidget(&btn);
+    layout->addWidget(area);
+    layout->addWidget(btn);
 
-    connect(&btn, &QPushButton::clicked, this, &Window::close);
+    connect(btn, &QPushButton::clicked, this, &Window::close);
+
+    initOk_ = true;
+    return true;
 }
