@@ -1,8 +1,11 @@
 #include "window.h"
 
-// Конструктор окна: создаёт холст и кнопку, компонует их по вертикали,
-// связывает кнопку со слотом закрытия окна.
+// Конструктор окна: холст и кнопка — члены-значения (уже созданы), здесь их
+// остаётся настроить, скомпоновать по вертикали и связать со слотом закрытия.
 Window::Window()
+    : codec(nullptr),
+      area(this),
+      btn(this)
 {
     // codecForName возвращает сырой указатель, возможно nullptr (кодек не
     // зарегистрирован) — тогда первый же codec->toUnicode() уронит приложение.
@@ -15,12 +18,13 @@ Window::Window()
     }
     this->setWindowTitle(codec->toUnicode("Обработка событий"));
 
-    area = new Area(this);
-    btn = new QPushButton(codec->toUnicode("Завершить"), this);
+    btn.setText(codec->toUnicode("Завершить"));
 
+    // Layout создаётся через new намеренно: Qt забирает владение и удалит его
+    // вместе с окном — это не утечка.
     QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addWidget(area);
-    layout->addWidget(btn);
+    layout->addWidget(&area);
+    layout->addWidget(&btn);
 
-    connect(btn, &QPushButton::clicked, this, &Window::close);
+    connect(&btn, &QPushButton::clicked, this, &Window::close);
 }

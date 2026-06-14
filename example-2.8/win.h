@@ -31,14 +31,16 @@ class Win : public QWidget
 {
     Q_OBJECT
 
-    // Поля закрыты (инкапсуляция): класс не наследуется. Все виджеты создаются
-    // с родителем this и освобождаются механизмом parent-child Qt (без утечек).
+    // Поля закрыты (инкапсуляция): доступ к виджетам нужен только методам окна.
   private:
-    QTextCodec *codec;        // кодек для русификации
-    QLabel *label1, *label2;  // подписи «Счёт по 1» и «Счёт по 5»
-    Counter *edit1, *edit2;   // два счётчика
-    QPushButton *calcbutton;  // кнопка «+1»
-    QPushButton *exitbutton;  // кнопка «Выход»
+    // codec — НЕвладеющий указатель (codecForName отдаёт разделяемый объект Qt).
+    QTextCodec *codec;
+    // Виджеты — члены-значения (композиция): освобождаются автоматически вместе
+    // с окном, без единого «new» и без риска утечки.
+    QLabel label1, label2;          // подписи «Счёт по 1» и «Счёт по 5»
+    Counter edit1, edit2;           // два счётчика
+    QPushButton calcbutton;         // кнопка «+1»
+    QPushButton exitbutton;         // кнопка «Выход»
 
   public:
     explicit Win(QWidget *parent = nullptr);
