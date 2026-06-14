@@ -42,41 +42,12 @@ class Win : public QWidget
 class StrValidator : public QValidator
 {
   public:
-    explicit StrValidator(QObject *parent) : QValidator(parent) {}
+    explicit StrValidator(QObject *parent);
 
     // Посимвольная проверка вещественного числа: необязательный знак «-»
     // первым символом, цифры и не более одной точки. Недопустимый символ
     // отбрасывается сразу при вводе, поэтому в Win::calc() проверка не нужна.
-    State validate(QString &str, int &pos) const override
-    {
-        Q_UNUSED(pos);
-        if (str.isEmpty())
-            return Intermediate; // пустое поле — можно продолжать ввод
-
-        bool hasDot = false;
-        for (int i = 0; i < str.size(); ++i)
-        {
-            const QChar c = str.at(i);
-            if (c == '-')
-            {
-                if (i != 0)
-                    return Invalid; // минус допустим только первым символом
-            }
-            else if (c == '.')
-            {
-                if (hasDot)
-                    return Invalid; // вторая точка недопустима
-                hasDot = true;
-            }
-            else if (!c.isDigit())
-                return Invalid; // любой другой символ запрещён
-        }
-
-        if (str == "-" || str == ".")
-            return Intermediate; // пока незавершённое число
-
-        return Acceptable;
-    }
+    State validate(QString &str, int &pos) const override;
 };
 
 #endif // WIN_H

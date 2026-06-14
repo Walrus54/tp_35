@@ -1,11 +1,54 @@
 #include "win.h"
 
+StrValidator::StrValidator(QObject *parent) : QValidator(parent) {}
+
+// Посимвольная проверка вещественного числа (см. описание в win.h).
+QValidator::State StrValidator::validate(QString &str, int &pos) const
+{
+    Q_UNUSED(pos);
+    if (str.isEmpty())
+        return Intermediate; // пустое поле — можно продолжать ввод
+
+    bool hasDot = false;
+    for (int i = 0; i < str.size(); ++i)
+    {
+        const QChar c = str.at(i);
+        if (c == '-')
+        {
+            if (i != 0)
+                return Invalid; // минус допустим только первым символом
+        }
+        else if (c == '.')
+        {
+            if (hasDot)
+                return Invalid; // вторая точка недопустима
+            hasDot = true;
+        }
+        else if (!c.isDigit())
+            return Invalid; // любой другой символ запрещён
+    }
+
+    if (str == "-" || str == ".")
+        return Intermediate; // пока незавершённое число
+
+    return Acceptable;
+}
+
 // Конструктор: создаёт все виджеты, компонует окно (см. рис. 2.7),
 // настраивает интерфейс на ввод и связывает сигналы со слотами.
 Win::Win(QWidget *parent) : QWidget(parent)
 {
     // Кодек для перевода строковых констант (в кодировке Windows-1251) в Unicode.
+    // codecForName возвращает сырой указатель, который может быть nullptr, если
+    // кодек не зарегистрирован в системе. Без проверки первый же codec->toUnicode()
+    // разыменует ноль и приложение упадёт без объяснений.
     codec = QTextCodec::codecForName("Windows-1251");
+    Q_ASSERT_X(codec != nullptr, "Win::Win", "кодек Windows-1251 недоступен в системе");
+    if (codec == nullptr)
+    {
+        qWarning("Win::Win: кодек Windows-1251 недоступен, использую UTF-8");
+        codec = QTextCodec::codecForName("UTF-8"); // запасной кодек — есть всегда
+    }
     setWindowTitle(codec->toUnicode("Возведение в квадрат"));
 
     // --- создание виджетов ---

@@ -1,6 +1,16 @@
 #include "figura.h"
 #include <math.h>
 
+Figura::Figura(int X, int Y, int Halflen) : x(X), y(Y), halflen(Halflen) {}
+
+// Виртуальный деструктор: обеспечивает корректное удаление наследников
+// по указателю на базовый класс.
+Figura::~Figura() {}
+
+MyLine::MyLine(int x, int y, int halflen) : Figura(x, y, halflen) {}
+
+MyRect::MyRect(int x, int y, int halflen) : Figura(x, y, halflen) {}
+
 // Пересчёт смещения (dx, dy) для угла Alpha и вызов рисования.
 // draw() — виртуальный, поэтому вызывается реализация конкретной фигуры (полиморфизм).
 void Figura::move(float Alpha, QPainter *Painter)

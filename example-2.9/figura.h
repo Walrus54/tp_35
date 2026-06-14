@@ -20,8 +20,8 @@ class Figura
     virtual void draw(QPainter *Painter) = 0;
 
   public:
-    Figura(int X, int Y, int Halflen) : x(X), y(Y), halflen(Halflen) {}
-    virtual ~Figura() {} // виртуальный деструктор — для корректного удаления по базовому указателю
+    Figura(int X, int Y, int Halflen);
+    virtual ~Figura(); // виртуальный деструктор — для корректного удаления по базовому указателю
 
     // Пересчитывает смещение под угол Alpha и перерисовывает фигуру.
     void move(float Alpha, QPainter *Painter);
@@ -34,7 +34,7 @@ class MyLine : public Figura
     void draw(QPainter *Painter) override;
 
   public:
-    MyLine(int x, int y, int halflen) : Figura(x, y, halflen) {}
+    MyLine(int x, int y, int halflen);
 };
 
 // Квадрат, вращающийся вокруг своего геометрического центра.
@@ -44,7 +44,7 @@ class MyRect : public Figura
     void draw(QPainter *Painter) override;
 
   public:
-    MyRect(int x, int y, int halflen) : Figura(x, y, halflen) {}
+    MyRect(int x, int y, int halflen);
 };
 
 #endif // FIGURA_H

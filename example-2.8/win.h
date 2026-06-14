@@ -14,10 +14,7 @@ class Counter : public QLineEdit
     Q_OBJECT // макрос Qt: нужен для объявления собственных сигналов/слотов
 
   public:
-    Counter(const QString &contents, QWidget *parent = nullptr)
-        : QLineEdit(contents, parent)
-    {
-    }
+    Counter(const QString &contents, QWidget *parent = nullptr);
 
   signals:
     // Сигнал «тик»: генерируется при достижении очередной серии из пяти нажатий.
@@ -26,16 +23,7 @@ class Counter : public QLineEdit
   public slots:
     // Слот «увеличить на единицу». Если текущее значение кратно пяти (и не ноль),
     // перед инкрементом генерирует tick_signal().
-    void add_one()
-    {
-        QString str = text();
-        int r = str.toInt();
-        if (r != 0 && r % 5 == 0)
-            emit tick_signal(); // достигнута серия из 5 -> оповещаем второй счётчик
-        r++;
-        str.setNum(r);
-        setText(str);
-    }
+    void add_one();
 };
 
 // Класс главного окна приложения «Счётчик».
